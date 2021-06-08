@@ -3,6 +3,8 @@ package promotions_test
 import (
 	"testing"
 
+	"github.com/sirlatrom/20210609/catalogs"
+	"github.com/sirlatrom/20210609/model"
 	"github.com/sirlatrom/20210609/promotions"
 )
 
@@ -12,88 +14,51 @@ var (
 	CDComboPromo = promotions.ComboDiscount("C", "D", 30.0)
 )
 
-type GlobalCatalog struct {
-	t    *testing.T
-	SKUs map[string]promotions.SKU
-}
-
-func (c GlobalCatalog) SKUByID(id string) promotions.SKU {
-	sku, exists := c.SKUs[id]
-	if !exists {
-		c.t.Fatalf("Unknown SKU %q", id)
-	}
-	return sku
-}
-
-func staticCatalog(t *testing.T) GlobalCatalog {
-	return GlobalCatalog{
-		t: t,
-		SKUs: map[string]promotions.SKU{
-			"A": {
-				ID:        "A",
-				ListPrice: 50.0,
-			},
-			"B": {
-				ID:        "B",
-				ListPrice: 30.0,
-			},
-			"C": {
-				ID:        "C",
-				ListPrice: 20.0,
-			},
-			"D": {
-				ID:        "D",
-				ListPrice: 15.0,
-			},
-		},
+func scenarioA(catalog model.Catalog) model.Cart {
+	return model.Cart{
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("C"),
 	}
 }
 
-func scenarioA(catalog GlobalCatalog) promotions.Cart {
-	return promotions.Cart{
-		catalog.SKUByID("A"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("C"),
+func scenarioB(catalog model.Catalog) model.Cart {
+	return model.Cart{
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("C"),
 	}
 }
 
-func scenarioB(catalog GlobalCatalog) promotions.Cart {
-	return promotions.Cart{
-		catalog.SKUByID("A"),
-		catalog.SKUByID("A"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("A"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("A"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("A"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("C"),
-	}
-}
-
-func scenarioC(catalog GlobalCatalog) promotions.Cart {
-	return promotions.Cart{
-		catalog.SKUByID("A"),
-		catalog.SKUByID("A"),
-		catalog.SKUByID("D"),
-		catalog.SKUByID("A"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("C"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("B"),
-		catalog.SKUByID("B"),
+func scenarioC(catalog model.Catalog) model.Cart {
+	return model.Cart{
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("D"),
+		*catalog.SKUByID("A"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("C"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("B"),
+		*catalog.SKUByID("B"),
 	}
 }
 
 func TestPromos(t *testing.T) {
-	catalog := staticCatalog(t)
+	catalog := catalogs.StaticNaiveCatalog
 	allPromos := []promotions.Promotion{ThreeAsPromo, TwoBsPromo, CDComboPromo}
 	testcases := []struct {
 		description        string
-		cart               promotions.Cart
+		cart               model.Cart
 		promos             []promotions.Promotion
 		expectedTotalPrice float64
 		expectedMatches    int
@@ -163,8 +128,8 @@ func TestPromos(t *testing.T) {
 		},
 	}
 	for _, testcase := range testcases {
-		totalPrice := 0.0
 		matches := 0
+		totalPrice := 0.0
 		remainder := testcase.cart
 		for _, promo := range testcase.promos {
 			result, promoRemainder := promo(remainder)
@@ -175,7 +140,7 @@ func TestPromos(t *testing.T) {
 			matches += len(result)
 		}
 		for _, sku := range remainder {
-			totalPrice += sku.ListPrice
+			totalPrice += sku.UnitPrice
 		}
 		if totalPrice != testcase.expectedTotalPrice {
 			t.Fatalf("Expected total price %v != %v in %q", testcase.expectedTotalPrice, totalPrice, testcase.description)

@@ -1,21 +1,23 @@
 package promotions
 
+import "github.com/sirlatrom/20210609/model"
+
 // VolumeDiscount finds all whole N-multiples of the given SKU ID and gives a promotion price for each of them, while returning the remainder unchanged.
 var VolumeDiscount = func(skuID string, n int, promoPrice float64) Promotion {
-	return func(cart Cart) ([]OrderLine, Cart) {
-		orderLines := []OrderLine{}
-		volumeCollection := []SKU{}
-		remainder := Cart{}
+	return func(cart model.Cart) ([]model.OrderLine, model.Cart) {
+		orderLines := []model.OrderLine{}
+		volumeCollection := []model.SKU{}
+		remainder := model.Cart{}
 		for _, sku := range cart {
 			switch sku.ID {
 			case skuID:
 				volumeCollection = append(volumeCollection, sku)
 				if len(volumeCollection) == n {
-					orderLines = append(orderLines, OrderLine{
+					orderLines = append(orderLines, model.OrderLine{
 						SKUs:  volumeCollection,
 						Price: promoPrice,
 					})
-					volumeCollection = []SKU{}
+					volumeCollection = []model.SKU{}
 				}
 			default:
 				remainder = append(remainder, sku)
