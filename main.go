@@ -8,6 +8,7 @@ import (
 	"github.com/sirlatrom/20210609/catalogs"
 	"github.com/sirlatrom/20210609/model"
 	"github.com/sirlatrom/20210609/promotions"
+	"golang.org/x/term"
 )
 
 var (
@@ -22,7 +23,10 @@ var (
 func main() {
 	s := bufio.NewScanner(os.Stdin)
 	s.Split(bufio.ScanLines)
-	for s.Scan() {
+
+	// Scan each line as a sequence of SKU IDs
+	prompt()
+	for ; s.Scan(); prompt() {
 		cart := model.Cart{}
 		line := s.Text()
 		fmt.Printf("Cart as input: %q\n", line)
@@ -36,6 +40,7 @@ func main() {
 		allPromos := []promotions.Promotion{ThreeAsPromo, TwoBsPromo, CDComboPromo}
 		totalPrice := 0.0
 		remainder := cart
+		fmt.Println("  Order lines with promotions:")
 		for _, promo := range allPromos {
 			result, promoRemainder := promo(remainder)
 			for _, match := range result {
@@ -44,10 +49,18 @@ func main() {
 			}
 			remainder = promoRemainder
 		}
+		fmt.Println("  Order lines without promotions:")
 		for _, sku := range remainder {
 			totalPrice += sku.UnitPrice
 			fmt.Printf("  - %v (subtotal %v)\n", sku, totalPrice)
 		}
 		fmt.Printf("Total price: %v\n", totalPrice)
+	}
+	fmt.Println()
+}
+
+func prompt() {
+	if term.IsTerminal(int(os.Stdin.Fd())) {
+		fmt.Print("Input SKU IDs> ")
 	}
 }
